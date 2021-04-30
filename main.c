@@ -171,7 +171,7 @@ void push(CardList* cardList, Card* cardP){
 Card* pop(CardList* cardList) {
 
     if (cardList->size == 0) {
-        printf("Trying to pop empty list. ListID: %d.\n",cardList->listID);
+        printf("Trying to pop empty list. ListID: %d.\n",cardList->listID); // TODO: Use messageHandler instead.
         return NULL;
     } else {
         Card* cardToPop = cardList->tail;
@@ -205,7 +205,7 @@ void moveCard(CardList* fromColumn, CardList* toColumn){
 void moveStack(CardList* fromColumn, CardList* toColumn, int cards){
 
     if (fromColumn->size < cards) {
-        printf("Trying to move more cards than there are available.");
+        printf("Trying to move more cards than there are available."); // TODO: Use messageHandler instead
     } else {
         CardList tempList;
         initCardList(&tempList, -1);
@@ -331,7 +331,36 @@ void createGrid(){
     }
 }
 
+moveCardCommand(char* cardName, char* columnName){
+    // TODO: Make this.
+
+    // STEP 1: Assert integrity of cardName and columnName and use second char
+    // of column name to reference grid index.
+
+    // STEP 2: Find the specified card by searching for the numRank of the card
+    // and then finding the matching suit card.
+
+    // STEP 3: Determine if move is legal. Card has to have hidden == 0 and column
+    // tail has to be one rank higher and off-suit.
+
+    // STEP 4: If move is illegal, update displayMessage. If move is legal,
+    // perform move and update lastCommand.
+}
+
+moveFoundation(char* columnName) {
+    // STEP 1: Assert integrity of columnName and use second char of column 
+    // name to reference grid index.
+    
+    // STEP 2: Check if tail element can be moved to it's designated foundation.
+
+    // STEP 3: If move is legal, perform it and update lastCommand.
+
+    // STEP 4: If move is not legal, update displayMessage.
+}
+
 void createGame(char* gameID) {
+
+    gameInit();
 
     int a = (int) (*(gameID)) - 48;
     int b = (int) (*(gameID + 1)) - 48;
@@ -384,6 +413,8 @@ void inputHandler(){
 
     if(*(command))
     {
+        // TODO: Add support for lower case/mixed case characters. Can be done with new method using 
+        // strncmp and converting chars to upper case, use this in if checks.
         if(strlen(*(command))==2){
             if (!(strncmp(*(command), "LD", 2))){
                 printf("Asked to load file %s\n", *(command + 1));
@@ -391,22 +422,30 @@ void inputHandler(){
                 if (strlen(*(command + 1)) == 2) {
                     createGame(*(command + 1));
                 } else {
+                    // Post error message.
                     createGame("00");
                 }
                 
             } else if (!(strncmp(*(command), "MV", 2))) {
                 printf("Asked to move card %s to column %s.\n", *(command + 1), *(command + 2));
-                // if(gameStarted)
-                // moveCard(card, column);
+                moveCardCommand(*(command + 1), *(command + 2)); // TODO: Placeholder, see method.
+
             } else if (!(strncmp(*(command), "QQ", 2))){
                 printf("Quitting program.");
                 run--;
+            } else if (!(strncmp(*(command), "FD", 2))){
+                moveFoundation(*(command + 1)); // TODO: Placeholder, see method.
+            } else if (!(strncmp(*(command), "HP", 2))){
+                // TODO: Maybe use draw to do this, and just not draw the cards? Help flag?
             } else {
+                // TODO: Make use of messageHandler
+                
                 printf("Invalid command.\n");
 
                 success--;
             }
         } else {
+            // TODO: Make use of messageHandler
             printf("Invalid command.\n");
 
             success--;
@@ -420,6 +459,7 @@ void inputHandler(){
         }
         free(command);
     } else {
+        // TODO: Make use of messageHandler
         printf("Invalid command.\n");
         
         success--;
