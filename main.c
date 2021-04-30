@@ -11,10 +11,11 @@ struct Card
 {
     struct Card* next;
     struct Card* prev;
-    int currentColumn;
+    int stackPosition;
     int listID;
     char suit;
     char rank;
+    int hidden;
 };
 
 typedef struct CardList CardList;
@@ -33,6 +34,8 @@ CardList column4;
 CardList column5;
 CardList column6;
 CardList column7;
+
+CardList grid[7];
 
 CardList f1;
 CardList f2;
@@ -61,7 +64,15 @@ void gameInit () {
     initCardList(&column5, 5);
     initCardList(&column6, 6);
     initCardList(&column7, 7);
-    
+
+    grid[0] = column1;
+    grid[1] = column2;
+    grid[2] = column3;
+    grid[3] = column4;
+    grid[4] = column5;
+    grid[5] = column6;
+    grid[6] = column7;
+
     initCardList(&f1, 8);
     initCardList(&f2, 9);
     initCardList(&f3, 10);
@@ -108,7 +119,7 @@ Card* pop(CardList* cardList) {
             
             // if using dummy node, include correcting cardP->next.
         } else {
-            initCardList(cardList);
+            initCardList(cardList, cardList->listID);
         }
         cardToPop->stackPosition = 0;
         return cardToPop;
@@ -129,7 +140,7 @@ void moveStack(CardList* fromColumn, CardList* toColumn, int cards){
         printf("Trying to move more cards than there are available.");
     } else {
         CardList tempList;
-        initCardList(&tempList);
+        initCardList(&tempList, -1);
         for (size_t i = 0; i < cards; i++)
         {
             moveCard(fromColumn, &tempList);
@@ -297,6 +308,7 @@ int main()
     //char *lastCommand;
 
     gameInit();
+
     /*
     Card card1;
     card1.rank = 'A';
