@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#define STOP 0
 
 
 int run = 1;
@@ -10,19 +9,137 @@ int run = 1;
 typedef struct Card Card;
 struct Card
 {
+    struct Card* next;
+    struct Card* prev;
+    int currentColumn;
+    int listID;
     char suit;
     char rank;
 };
 
-typedef struct DoubleLinkedList DLL;
-struct DoubleLinkedList
+typedef struct CardList CardList;
+struct CardList
 {
-    // CAN WE IMPORT DOUBLELINKEDLISTS FROM HELP FILES??
+    Card* head;
+    Card* tail;
+    int size;
+    int listID;
 };
 
+CardList column1;
+CardList column2;
+CardList column3;
+CardList column4;
+CardList column5;
+CardList column6;
+CardList column7;
+
+CardList f1;
+CardList f2;
+CardList f3;
+CardList f4;
+
+// CardList sortedDeck;
+
+CardList deck;
 
 
+void initCardList (CardList* cardList, int listID){
+    cardList->head = NULL;
+    cardList->tail = NULL;
+    cardList->size = 0;
+    cardList->listID = listID;
+}
 
+void gameInit () {
+    initCardList(&deck, 0);
+
+    initCardList(&column1, 1);
+    initCardList(&column2, 2);
+    initCardList(&column3, 3);
+    initCardList(&column4, 4);
+    initCardList(&column5, 5);
+    initCardList(&column6, 6);
+    initCardList(&column7, 7);
+    
+    initCardList(&f1, 8);
+    initCardList(&f2, 9);
+    initCardList(&f3, 10);
+    initCardList(&f4, 11);
+}
+
+
+void push(CardList* cardList, Card* cardP){
+    
+    if (cardList->head == NULL){
+        // printf("Head in cardList before first element: %p.\n", cardList->head);
+        cardList->head = cardP; 
+        cardList->tail = cardP; 
+        cardList->head->next = NULL;
+        cardList->head->prev = NULL;
+
+        // if using dummy node, assign head->prev and head->next differently.
+        // printf("Head in cardList after pushing first element: %p\n", cardList->head); 
+    } else {
+        cardList->tail->next = cardP;
+        cardP->prev = cardList->tail;
+        cardList->tail = cardP;
+
+        // if using dummy node, include correcting cardP->next.
+    }
+    cardList->size++;
+    cardP->stackPosition = cardList->size;
+    cardP->listID = cardList->listID;
+}
+
+Card* pop(CardList* cardList) {
+    if (cardList->size == 0) {
+        printf("Trying to pop empty list.\n");
+        return NULL;
+    } else {
+        Card* cardToPop = cardList->tail;
+        // printf("CardToPop = %c%c\n", cardToPop->rank,cardToPop->suit);
+        if(cardList->tail->prev != NULL) {
+            Card* cardPrevP = cardList->tail->prev;
+            cardList->tail->prev = NULL; 
+            cardList->tail = cardPrevP;
+            cardList->tail->next = NULL;
+            cardList->size--;
+            
+            // if using dummy node, include correcting cardP->next.
+        } else {
+            initCardList(cardList);
+        }
+        cardToPop->stackPosition = 0;
+        return cardToPop;
+    }
+}
+
+void moveCard(CardList* fromColumn, CardList* toColumn){
+    Card* poppedCard = pop(fromColumn);
+    if (poppedCard == NULL){
+        printf("No card to move. \n");
+    } else {
+        push(toColumn, poppedCard);
+    }
+}
+
+void moveStack(CardList* fromColumn, CardList* toColumn, int cards){
+    if (fromColumn->size < cards) {
+        printf("Trying to move more cards than there are available.");
+    } else {
+        CardList tempList;
+        initCardList(&tempList);
+        for (size_t i = 0; i < cards; i++)
+        {
+            moveCard(fromColumn, &tempList);
+        }
+        for (size_t i = 0; i < cards; i++)
+        {
+            moveCard(&tempList, toColumn);
+        }
+    }
+}
 
 char** str_split(char* str, const char delimiter){
     char** result = 0;
@@ -94,9 +211,9 @@ void createGame(char* gameID) {
     }
 
     if (a) {
-        // Load specified file.
+        // Load specified file using gameID.
     } else {
-        // Load default file.
+        // Load default file 00.txt.
     }
     
 
@@ -177,16 +294,40 @@ void inputHandler(){
 
 int main() 
 {
-    char *lastCommand;
-    do {
+    //char *lastCommand;
+
+    gameInit();
+    /*
+    Card card1;
+    card1.rank = 'A';
+    card1.suit = 'H';
+
+    Card card2;
+    card2.rank = '2';
+    card2.suit = 'D';
+
+    Card card3;
+    card3.rank = '3';
+    card3.suit = 'S';
+
+    Card card4;
+    card4.rank = '4';
+    card4.suit = 'C';
+
+    Card card5;
+    card5.rank = '5';
+    card5.suit = 'H';
+    */
+
+    //do {
         
-        printf("Command: ");
+      //  printf("Command: ");
 
         // if(gameStarted) reDraw();
 
         // char *commandGiven = inputHandler();
 
-        inputHandler();
+      //  inputHandler();
         /*
         if (commandGiven) {
             strcpy(lastCommand, commandGiven);
@@ -201,7 +342,7 @@ int main()
          *  Print out input query
          */
         
-    } while (run);
+    //} while (run);
 
     return 0;
 }
