@@ -358,6 +358,11 @@ moveFoundation(char* columnName) {
     // STEP 4: If move is not legal, update displayMessage.
 }
 
+showCommand(){
+    // TODO: Implement this. Populate lists with 00.txt according to SW in
+    // assignment. 
+}
+
 void createGame(char* gameID) {
 
     gameInit();
@@ -437,6 +442,8 @@ void inputHandler(){
                 moveFoundation(*(command + 1)); // TODO: Placeholder, see method.
             } else if (!(strncmp(*(command), "HP", 2))){
                 // TODO: Maybe use draw to do this, and just not draw the cards? Help flag?
+            } else if (!(strncmp(*(command), "SW", 2))){
+                showCommand(); // TODO: PlaceHolder
             } else {
                 // TODO: Make use of messageHandler
                 
