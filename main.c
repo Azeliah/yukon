@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "fileReader.c"
 
 
 int run = 1;
@@ -9,13 +10,14 @@ int run = 1;
 typedef struct Card Card;
 struct Card
 {
-    struct Card* next;
-    struct Card* prev;
-    int stackPosition;
-    int listID;
-    char suit;
-    char rank;
-    int hidden;
+    struct Card* next; // Point to next card in current link list, where this is located.
+    struct Card* prev; // And the previous card. NULL if they don't exist.
+    int stackPosition; // Provided by push function.
+    int listID; // Provided by push function
+    int numRank; // Provided on data import and "typecast" (createCard)
+    char suit; // Provided on data import and "typecast" (createCard)
+    char rank; // Provided on data import and "typecast" (createCard)
+    int hidden; // Provided when setting up new game.
 };
 
 typedef struct CardList CardList;
@@ -42,12 +44,15 @@ CardList f2;
 CardList f3;
 CardList f4;
 
+CardList foundations[4];
+
 // CardList sortedDeck;
 
 CardList deck;
 
 
 void initCardList (CardList* cardList, int listID){
+
     cardList->head = NULL;
     cardList->tail = NULL;
     cardList->size = 0;
@@ -55,6 +60,7 @@ void initCardList (CardList* cardList, int listID){
 }
 
 void gameInit () {
+
     initCardList(&deck, 0);
 
     initCardList(&column1, 1);
@@ -77,8 +83,67 @@ void gameInit () {
     initCardList(&f2, 9);
     initCardList(&f3, 10);
     initCardList(&f4, 11);
+
+    foundations[0] = f1;
+    foundations[1] = f2;
+    foundations[2] = f3;
+    foundations[3] = f4;
 }
 
+Card* getCLCard (CardList* cardList, int depth){
+
+    if (cardList->size < depth) {
+        return NULL;
+    } else {
+        Card* card = cardList->head;
+        for (int i = 0; i < depth ; i++)
+        {
+            card = card->next;
+        }
+        return card;
+    }
+}
+
+void draw(){
+
+    system("clear");
+    printf("C1\tC2\tC3\tC4\tC5\tC6\tC7\n\n");
+    int rowMax = 7;
+    for (int i = 0 ; i < 7; i++)
+    {
+        if (grid[i].size > rowMax){ rowMax = grid[i].size; }
+    }
+    
+    for (int i = 0; i < rowMax; i++)
+    {
+        for (int j = 0; j < 7 ; j++)
+        {
+            Card* card = getCLCard(&grid[j], i);
+            if(card != NULL){
+                printf("%c%c", card->rank, card->suit);
+            }
+            printf("\t");
+        }
+
+        printf("\t");
+
+        // Rows 0, 2, 4, 6 should have foundations.
+        if (i % 2 == 0 && i < 7) {
+            if (foundations[i/2].tail == NULL) {
+                printf("[]\t");
+            } else {
+                printf("%c%c\t",foundations[i/2].tail->rank, foundations[i/2].tail->suit);
+            }
+            printf("F%d", i/2 + 1);
+        }
+        printf("\n");
+    }
+    printf("\nLAST Command: "); // TODO: lastCommandHandler()
+
+    printf("\nMessage: "); // TODO: messageHandler().
+
+    printf("\nINPUT > ");
+}
 
 void push(CardList* cardList, Card* cardP){
     
@@ -104,8 +169,9 @@ void push(CardList* cardList, Card* cardP){
 }
 
 Card* pop(CardList* cardList) {
+
     if (cardList->size == 0) {
-        printf("Trying to pop empty list.\n");
+        printf("Trying to pop empty list. ListID: %d.\n",cardList->listID);
         return NULL;
     } else {
         Card* cardToPop = cardList->tail;
@@ -127,6 +193,7 @@ Card* pop(CardList* cardList) {
 }
 
 void moveCard(CardList* fromColumn, CardList* toColumn){
+
     Card* poppedCard = pop(fromColumn);
     if (poppedCard == NULL){
         printf("No card to move. \n");
@@ -136,16 +203,17 @@ void moveCard(CardList* fromColumn, CardList* toColumn){
 }
 
 void moveStack(CardList* fromColumn, CardList* toColumn, int cards){
+
     if (fromColumn->size < cards) {
         printf("Trying to move more cards than there are available.");
     } else {
         CardList tempList;
         initCardList(&tempList, -1);
-        for (size_t i = 0; i < cards; i++)
+        for (int i = 0; i < cards; i++)
         {
             moveCard(fromColumn, &tempList);
         }
-        for (size_t i = 0; i < cards; i++)
+        for (int i = 0; i < cards; i++)
         {
             moveCard(&tempList, toColumn);
         }
@@ -153,6 +221,7 @@ void moveStack(CardList* fromColumn, CardList* toColumn, int cards){
 }
 
 char** str_split(char* str, const char delimiter){
+
     char** result = 0;
     size_t count = 0;
     char* tmp = str;
@@ -208,11 +277,64 @@ char** str_split(char* str, const char delimiter){
     return result;
 }
 
+Card createCard (char* cardString){
+
+    // char offset 0 = A,2,3,4,5,6,7,8,9,T,J,Q,K
+    // char offset 1 = C,D,S,H
+    // provide numRank, suit, rank
+
+    Card card;
+    card.rank = *(cardString);
+    card.suit = *(cardString + 1);
+    switch (card.rank)
+    {
+    case 'A':
+        card.numRank = 1;
+        break;
+    case 'T':
+        card.numRank = 10;
+        break;
+    case 'J':
+        card.numRank = 11;
+        break;
+    case 'Q':
+        card.numRank = 12;
+        break;
+    case 'K':
+        card.numRank = 13;
+        break;
+    default:
+        card.numRank = (int) (card.rank) - 48;
+        break;
+    }
+    return card;
+}
+
+void createGrid(){
+
+    moveCard(&deck, &grid[0]);
+    for (int i = 1; i < 7; i++) 
+    {
+        for (int j = i; j < 7; j++)
+        {
+            // Later: placeHidden()
+            moveCard(&deck, &grid[j]);
+        }
+    }
+
+    for (int i = 0; i < 5; i++)
+    {
+        for (int j = 1; j < 7; j++)
+        {
+            moveCard(&deck, &grid[j]);
+        }
+    }
+}
+
 void createGame(char* gameID) {
-    // STEP 0: Input validation (is gameID 00-99? Else select 00.)
+
     int a = (int) (*(gameID)) - 48;
     int b = (int) (*(gameID + 1)) - 48;
-    printf("a = %d, b = %d", a, b);
     a = a*10 + b;
 
     if (a > -1 && a < 100) {
@@ -221,21 +343,29 @@ void createGame(char* gameID) {
         a = 0;
     }
 
+    char** cards;
+
     if (a) {
-        // Load specified file using gameID.
+        cards = fileReader(gameID);
     } else {
-        // Load default file 00.txt.
+        cards = fileReader("00");
     }
-    
 
-    // STEP 1: Load data from file into structs.
+    Card* castCards = malloc(sizeof(Card) * 52);
 
-    // STEP 2: Create double linked lists (columns 1-7 and foundations 1-4).
+    for (size_t i = 0; i < 52; i++)
+    {
+        castCards[i] = createCard(*(cards + 51 - i));
+        push(&deck,&castCards[i]);
+    }
 
-    // STEP 3: Populate linked lists with data from file.
+    free(cards);
+
+    createGrid();
 }
 
 void inputHandler(){
+
     /*
      *  "MV 7H C6"  Move 7 of hearts to column 6.
      *  "LD xx"     Load game xx (00-99, where 00 is sorted deck)
@@ -294,70 +424,19 @@ void inputHandler(){
         
         success--;
     }
-    /*
-    if (success) {
-        return *input;
-    } else {
-        return NULL;
-    }
-    */
 }
 
 int main() 
 {
-    //char *lastCommand;
-
     gameInit();
 
-    /*
-    Card card1;
-    card1.rank = 'A';
-    card1.suit = 'H';
+    while (run){
+        draw();
 
-    Card card2;
-    card2.rank = '2';
-    card2.suit = 'D';
-
-    Card card3;
-    card3.rank = '3';
-    card3.suit = 'S';
-
-    Card card4;
-    card4.rank = '4';
-    card4.suit = 'C';
-
-    Card card5;
-    card5.rank = '5';
-    card5.suit = 'H';
-    */
-
-    //do {
-        
-      //  printf("Command: ");
-
-        // if(gameStarted) reDraw();
-
-        // char *commandGiven = inputHandler();
-
-      //  inputHandler();
-        /*
-        if (commandGiven) {
-            strcpy(lastCommand, commandGiven);
-        }
-        printf("\nLast command given: %s\n\n", lastCommand);
-        */
-
-        /*
-         *  Print out game state
-         *  Print out last command
-         *  Print out message statement
-         *  Print out input query
-         */
-        
-    //} while (run);
+        inputHandler();
+    }
+    
+    printf("\n\nFinished.\n");
 
     return 0;
 }
-
-
-
