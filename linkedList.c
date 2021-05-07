@@ -175,6 +175,7 @@ void moveCard(CardList* fromColumn, CardList* toColumn){
         push(toColumn, poppedCard);
     }
 
+    // Unhide the tail card of the fromColumn.
     if (!(fromColumn->tail == NULL)){
         fromColumn->tail->hidden = 0;
     }
