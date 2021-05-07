@@ -4,8 +4,8 @@
 #include <assert.h>
 #include "fileReader.c"
 
-
 int run = 1;
+int drawEnabled = 1;
 
 typedef struct Card Card;
 struct Card
@@ -15,6 +15,7 @@ struct Card
     int stackPosition; // Provided by push function.
     int listID; // Provided by push function
     int numRank; // Provided on data import and "typecast" (createCard)
+    int numSuit; // Provided on data import and "typecast" (createCard)
     char suit; // Provided on data import and "typecast" (createCard)
     char rank; // Provided on data import and "typecast" (createCard)
     int hidden; // Provided when setting up new game.
@@ -50,6 +51,8 @@ CardList foundations[4];
 
 CardList deck;
 
+char* lastMessage;
+char* lastCommand;
 
 void initCardList (CardList* cardList, int listID){
 
@@ -106,7 +109,10 @@ Card* getCLCard (CardList* cardList, int depth){
 
 void draw(){
 
-    system("clear");
+    if(drawEnabled){
+        system("clear");        
+    }
+
     printf("C1\tC2\tC3\tC4\tC5\tC6\tC7\n\n");
     int rowMax = 7;
     for (int i = 0 ; i < 7; i++)
@@ -120,14 +126,18 @@ void draw(){
         {
             Card* card = getCLCard(&grid[j], i);
             if(card != NULL){
+                if(card->hidden){
+                    printf("[]");
+                } else {
                 printf("%c%c", card->rank, card->suit);
+                }
             }
             printf("\t");
         }
 
         printf("\t");
 
-        // Rows 0, 2, 4, 6 should have foundations.
+        // Rows 0, 2, 4, 6 should have foundations displayed.
         if (i % 2 == 0 && i < 7) {
             if (foundations[i/2].tail == NULL) {
                 printf("[]\t");
@@ -138,9 +148,9 @@ void draw(){
         }
         printf("\n");
     }
-    printf("\nLAST Command: "); // TODO: lastCommandHandler()
+    printf("\nLAST Command: %s", lastCommand); // TODO: lastCommandHandler()
 
-    printf("\nMessage: "); // TODO: messageHandler().
+    printf("\nMessage: %s", lastMessage); 
 
     printf("\nINPUT > ");
 }
@@ -199,6 +209,10 @@ void moveCard(CardList* fromColumn, CardList* toColumn){
         printf("No card to move. \n");
     } else {
         push(toColumn, poppedCard);
+    }
+
+    if (!(fromColumn->tail == NULL)){
+        fromColumn->tail->hidden = 0;
     }
 }
 
@@ -284,6 +298,7 @@ Card createCard (char* cardString){
     // provide numRank, suit, rank
 
     Card card;
+    card.hidden = 0;
     card.rank = *(cardString);
     card.suit = *(cardString + 1);
     switch (card.rank)
@@ -307,6 +322,23 @@ Card createCard (char* cardString){
         card.numRank = (int) (card.rank) - 48;
         break;
     }
+    switch (card.suit)
+    {
+    case 'C':
+        card.numSuit = 0;
+        break;
+    case 'D':
+        card.numSuit = 1;
+        break;
+    case 'S':
+        card.numSuit = 2;
+        break;
+    case 'H':
+        card.numSuit = 3;
+        break;
+    default:
+        break;
+    }
     return card;
 }
 
@@ -317,8 +349,8 @@ void createGrid(){
     {
         for (int j = i; j < 7; j++)
         {
-            // Later: placeHidden()
             moveCard(&deck, &grid[j]);
+            grid[j].tail->hidden = 1;
         }
     }
 
@@ -331,23 +363,226 @@ void createGrid(){
     }
 }
 
-moveCardCommand(char* cardName, char* columnName){
+void messageHandler(char* outputMessage){
+    lastMessage = strdup(outputMessage);
+}
+
+void lastCommandHandler(char* outputMessage){
+    lastCommand = strdup(outputMessage);
+}
+
+int isLetter(char input){
+    // return 0 if not a letter, 1 if upper case, 2 if lower case
+    int charNum = (int) (input);
+    if (charNum > 64 && charNum < 91) { 
+        return 1; 
+    } else if (charNum > 96 && charNum < 123) {
+        return 2;
+    } else {
+        return 0;
+    }
+}
+
+char* convertToUpperCase(char* input) {
+    size_t inputLength = strlen(input);
+    char* convert = malloc(sizeof(char) * inputLength);
+    int letter = 0;
+    for (size_t i = 0; i < inputLength; i++)
+    {
+        letter = isLetter(*(input + i));
+        if (letter == 2) {
+            *(convert + i) = *(input + i) - 32;
+        } else {
+            *(convert + i) = *(input + i);
+        }
+    }
+    return convert;
+}
+
+int assertParameter(char* input, char assertType){
+    // input is ALWAYS 2 upper case characters.
+
+    int value;
+
+    switch (assertType)
+    {
+    case 'c':
+        // Card type parameter. We want to ensure it has the card format, e.g. TH for 10 of hearts.
+        // If card is correctly formatted, return the numeric value + offset divisible by 13 based on suit.
+
+        switch (*(input))
+        {
+        case 'A':
+            value = 1;
+            break;
+        case 'T':
+            value = 10;
+            break;
+        case 'J':
+            value = 11;
+            break;
+        case 'Q':
+            value = 12;
+            break;
+        case 'K':
+            value = 13;
+            break;
+        default:
+            value = (int) (*(input)) - 48;
+            if (value < 2 || value > 9){
+                return -1;
+            }
+            break;
+        }
+        switch (*(input + 1))
+        {
+        case 'C':
+            break;
+        case 'D':
+            value += 13;
+            break;
+        case 'S':
+            value += 26;
+            break;
+        case 'H':
+            value += 39;
+            break;
+        default:
+            return -1;
+            break;
+        }
+
+        break;
+    
+    case 'g':
+        // Grid type parameter
+        if (!(*(input) == 'C'))
+        {
+            return -1;
+        }
+        value = (int) (*(input + 1)) - 49; // Subtracting 1 on top of ASCII number offset.
+        if (value < 0 || value > 6) {
+            return -1;
+        }
+
+        break;
+    
+    default:
+
+        break;
+    }
+    return value;
+
+}
+
+Card* searchCard(int numRank, int numSuit){
+    
+    if (foundations[numSuit].size > numRank) {
+        printf("1\n");
+        return NULL;
+    }
+
+    int columnSize;
+    Card* currentCard;
+    int cardFound = 0;
+
+    for (int i = 0; i < 7; i++)
+    {
+        columnSize = grid[i].size;
+        if(columnSize > 0) {
+            currentCard = grid[i].tail;
+        
+            if (currentCard->numRank == numRank){
+                if (currentCard->numSuit == numSuit)
+                {
+                    cardFound = 1;
+                }
+
+            }
+            for (int j = 0; j < columnSize - 1; j++)
+            {
+                if (cardFound)
+                {
+                    break;
+                }
+                currentCard = currentCard->prev;
+                if (currentCard->numRank == numRank){
+                    if (currentCard->numSuit == numSuit)
+                    {
+                        cardFound = 1;
+                    }
+                }
+            }
+            if (cardFound)
+            {
+                break;
+            }
+        }
+    }
+    return currentCard;
+}
+
+int moveCardCommand(char* cardName, char* columnName){
     // TODO: Make this.
 
-    // STEP 1: Assert integrity of cardName and columnName and use second char
-    // of column name to reference grid index.
+    int cardNum = assertParameter(cardName,'c');
+    int columnNum = assertParameter(columnName,'g');
 
+    if (cardNum == -1 || columnNum == -1) {
+        // TODO: Post error message through messageHandler(). Input is not formatted properly.
+        messageHandler("Wrong use of MV command. Type HP for more info on commands.");
+        return 0;
+    }
+    
     // STEP 2: Find the specified card by searching for the numRank of the card
-    // and then finding the matching suit card.
+    // and then matching numSuit.
+    int numSuit = (cardNum - 1) / 13;
+    int numRank = cardNum - (13 * numSuit);
+    
+    Card* targetCard = searchCard(numRank,numSuit);
+
+    int cardsToMove;
 
     // STEP 3: Determine if move is legal. Card has to have hidden == 0 and column
     // tail has to be one rank higher and off-suit.
 
+    if (targetCard == NULL) {
+        // TODO: Post error message through messageHandler(). Card is on foundation.
+        // WISH: Moving top card on foundation back to the board.
+        messageHandler("Trying to move a card that is on a foundation.");
+        return 0;
+    } else if (targetCard->hidden) {
+        // TODO: Post error message through messageHandler(). Card has not been revealed.
+        messageHandler("Trying to move a card that hasn't been revealed");
+        return 0;
+    } else if (grid[columnNum].tail == NULL) {
+        if (numRank == 13) {
+            cardsToMove = grid[targetCard->listID - 1].size - targetCard->stackPosition + 1;
+            moveStack(&grid[targetCard->listID - 1], &grid[columnNum], cardsToMove);
+            messageHandler("Card(s) successfully moved.");
+            return 1;
+        } else {
+            // TODO: Post error message through messageHandler(). Trying to move non-king to empty column.
+            messageHandler("Trying to move a non-king to an empty column.");
+            return 0;
+        }
+    } else if (grid[columnNum].tail->numRank != numRank + 1 || grid[columnNum].tail->numSuit == numSuit) {
+        // TODO: Post error message through messageHandler(). Target column doesn't meet requirements.
+        messageHandler("Illegal move: Please try again.");
+        return 0;
+    } else {
+        cardsToMove = grid[targetCard->listID - 1].size - targetCard->stackPosition + 1;
+        moveStack(&grid[targetCard->listID - 1], &grid[columnNum], cardsToMove);
+        messageHandler("Card(s) successfully moved.");
+        return 1;
+    }
+
     // STEP 4: If move is illegal, update displayMessage. If move is legal,
     // perform move and update lastCommand.
+
 }
 
-moveFoundation(char* columnName) {
+void moveFoundation(char* columnName) {
     // STEP 1: Assert integrity of columnName and use second char of column 
     // name to reference grid index.
     
@@ -358,9 +593,28 @@ moveFoundation(char* columnName) {
     // STEP 4: If move is not legal, update displayMessage.
 }
 
-showCommand(){
+void showCommand(){
     // TODO: Implement this. Populate lists with 00.txt according to SW in
     // assignment. 
+
+    char** cards;
+
+    cards = fileReader("00");
+
+    Card* castCards = malloc(sizeof(Card) * 52);
+
+    for (size_t i = 0; i < 52; i++)
+    {
+        castCards[i] = createCard(*(cards + 51 - i));
+        push(&deck,&castCards[i]);
+    }
+
+    free(cards);
+
+    for (int j = 0; j < 52; j++)
+    {
+        moveCard(&deck, &grid[j % 7]);
+    }
 }
 
 void createGame(char* gameID) {
@@ -408,32 +662,39 @@ void inputHandler(){
 
     char input[9];
     char** command;
+    char** commandTest;
     int success = 1;
 
     fgets(input, sizeof(input) + 1, stdin);
 
-    input[strcspn(input,"\n")] = 0;
+    char* convert = convertToUpperCase(input); // Convert any lower case characters to upper case characters.
 
-    command = str_split(input, ' ');
+    convert[strcspn(convert,"\n")] = 0;
+    
+    command = str_split(convert, ' ');
 
+    free(convert);
+    
     if(*(command))
     {
-        // TODO: Add support for lower case/mixed case characters. Can be done with new method using 
-        // strncmp and converting chars to upper case, use this in if checks.
-        if(strlen(*(command))==2){
+        if(strlen(*(command)) == 2){
             if (!(strncmp(*(command), "LD", 2))){
                 printf("Asked to load file %s\n", *(command + 1));
 
                 if (strlen(*(command + 1)) == 2) {
                     createGame(*(command + 1));
                 } else {
-                    // Post error message.
                     createGame("00");
                 }
                 
             } else if (!(strncmp(*(command), "MV", 2))) {
                 printf("Asked to move card %s to column %s.\n", *(command + 1), *(command + 2));
-                moveCardCommand(*(command + 1), *(command + 2)); // TODO: Placeholder, see method.
+                if(strlen(*(command + 1)) == 2 && strlen(*(command + 2)) == 2){
+                    success = moveCardCommand(*(command + 1), *(command + 2)); 
+                } else {
+                    messageHandler("Wrong use of MV command. Type HP for more info on commands.");
+                    success--;
+                    }
 
             } else if (!(strncmp(*(command), "QQ", 2))){
                 printf("Quitting program.");
@@ -444,6 +705,10 @@ void inputHandler(){
                 // TODO: Maybe use draw to do this, and just not draw the cards? Help flag?
             } else if (!(strncmp(*(command), "SW", 2))){
                 showCommand(); // TODO: PlaceHolder
+            } else if (!(strncmp(*(command), "TT", 2))){
+                drawEnabled = 0;
+            } else if (!(strncmp(*(command), "QT", 2))){
+                drawEnabled = 1;
             } else {
                 // TODO: Make use of messageHandler
                 
@@ -471,11 +736,19 @@ void inputHandler(){
         
         success--;
     }
+    if (success){
+        lastCommandHandler(input);
+    }
 }
 
 int main() 
-{
+{    
     gameInit();
+    lastCommandHandler("No commands given.");
+    messageHandler("Welcome! Type HP to show available commands.");
+
+    printf("\n\nFirst command: ");
+    inputHandler(); // draw() clears output, so this is here to ensure we get output before the clear happens and should be removed later.
 
     while (run){
         draw();
