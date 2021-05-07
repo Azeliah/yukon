@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 typedef struct Card Card;
 struct Card
@@ -9,21 +8,21 @@ struct Card
     struct Card* next; // Point to next card in current link list, where this is located.
     struct Card* prev; // And the previous card. NULL if they don't exist.
     int stackPosition; // Provided by push function.
-    int listID; // Provided by push function
-    int numRank; // Provided on data import and "typecast" (createCard)
-    int numSuit; // Provided on data import and "typecast" (createCard)
-    char suit; // Provided on data import and "typecast" (createCard)
-    char rank; // Provided on data import and "typecast" (createCard)
-    int hidden; // Provided when setting up new game.
+    int listID;        // Provided by push function
+    int numRank;       // Provided on data import and "typecast" (createCard)
+    int numSuit;       // Provided on data import and "typecast" (createCard)
+    char suit;         // Provided on data import and "typecast" (createCard)
+    char rank;         // Provided on data import and "typecast" (createCard)
+    int hidden;        // Provided when setting up new game.
 };
 
 typedef struct CardList CardList;
 struct CardList
 {
-    Card* head;
-    Card* tail;
-    int size;
-    int listID;
+    Card* head; // Point to the head of the list.
+    Card* tail; // Point to the tail of the list.
+    int size;   // Current size of the list.
+    int listID; // List ID which is assigned to members of the list.
 };
 
 CardList column1;
@@ -45,6 +44,10 @@ CardList foundations[4];
 
 CardList deck;
 
+/*
+ * Initialize CardList with starting values for an empty list.
+ */
+
 void initCardList (CardList* cardList, int listID){
 
     cardList->head = NULL;
@@ -52,6 +55,10 @@ void initCardList (CardList* cardList, int listID){
     cardList->size = 0;
     cardList->listID = listID;
 }
+
+/*
+ * Initialize (or reset) all lists used in the game, assign to grid and foundation.
+ */
 
 void gameInitialize () {
     initCardList(&deck, 0);
@@ -84,6 +91,10 @@ void gameInitialize () {
     foundations[3] = f4;
 }
 
+/*
+ * Retrieve the card at depth position. If it doesn't exist, return NULL.
+ */
+
 Card* getCLCard (CardList* cardList, int depth){
 
     if (cardList->size < depth) {
@@ -98,18 +109,20 @@ Card* getCLCard (CardList* cardList, int depth){
     }
 }
 
+/*
+ * Push a Card onto the specified CardList.
+ */
+
 void push(CardList* cardList, Card* cardP){
     
-    if (cardList->head == NULL){
-        // printf("Head in cardList before first element: %p.\n", cardList->head);
+    if (cardList->head == NULL){ // If CardList is empty, assign card as both head and tail.
         cardList->head = cardP; 
         cardList->tail = cardP; 
         cardList->head->next = NULL;
         cardList->head->prev = NULL;
 
-        // if using dummy node, assign head->prev and head->next differently.
-        // printf("Head in cardList after pushing first element: %p\n", cardList->head); 
-    } else {
+        // if using dummy node, assign head->prev and head->next to dummy node.
+    } else { // If CardList is not empty fix tail pointers and cardP->prev pointer.
         cardList->tail->next = cardP;
         cardP->prev = cardList->tail;
         cardList->tail = cardP;
@@ -117,9 +130,13 @@ void push(CardList* cardList, Card* cardP){
         // if using dummy node, include correcting cardP->next.
     }
     cardList->size++;
-    cardP->stackPosition = cardList->size;
-    cardP->listID = cardList->listID;
+    cardP->stackPosition = cardList->size; // Assign the stackPosition of the card.
+    cardP->listID = cardList->listID; // Update card listID.
 }
+
+/*
+ * Remove the tail element of a CardList, if the element exists.
+ */
 
 Card* pop(CardList* cardList) {
 
@@ -128,8 +145,7 @@ Card* pop(CardList* cardList) {
         return NULL;
     } else {
         Card* cardToPop = cardList->tail;
-        // printf("CardToPop = %c%c\n", cardToPop->rank,cardToPop->suit);
-        if(cardList->tail->prev != NULL) {
+        if(cardList->tail->prev != NULL) { // If CardList has more than 1 element, remove the tail element.
             Card* cardPrevP = cardList->tail->prev;
             cardList->tail->prev = NULL; 
             cardList->tail = cardPrevP;
@@ -137,13 +153,18 @@ Card* pop(CardList* cardList) {
             cardList->size--;
             
             // if using dummy node, include correcting cardP->next.
-        } else {
+        } else { // If CardList has only 1 element left, reset the list.
             initCardList(cardList, cardList->listID);
         }
         cardToPop->stackPosition = 0;
         return cardToPop;
     }
 }
+
+/*
+ * Move a card from one CardList to another by first popping it from the one column 
+ * and then pushing it onto the other.
+ */
 
 void moveCard(CardList* fromColumn, CardList* toColumn){
 
@@ -158,6 +179,13 @@ void moveCard(CardList* fromColumn, CardList* toColumn){
         fromColumn->tail->hidden = 0;
     }
 }
+
+/*
+ * Moves a specified number of cards onto a temporary CardList from a given CardList.
+ * Then moves the same number of cards from the temporary CardList onto the other 
+ * given CardList.
+ * The reason for this "weird" maneuver is to ensure correct order (Towers of Hanoi).
+ */
 
 void moveStack(CardList* fromColumn, CardList* toColumn, int cards){
 
@@ -176,6 +204,10 @@ void moveStack(CardList* fromColumn, CardList* toColumn, int cards){
         }
     }
 }
+
+/*
+ * Creates a card based on a String, such as 7H.
+ */
 
 Card createCard (char* cardString){
 
@@ -227,6 +259,10 @@ Card createCard (char* cardString){
     }
     return card;
 }
+
+/*
+ * Searches through grid to find a card matching the given numRank and numSuit.
+ */
 
 Card* searchCard(int numRank, int numSuit){
     

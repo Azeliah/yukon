@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include "fileReader.c"
 #include "linkedList.c"
@@ -15,12 +14,20 @@ int helpText = 1;
 void gameInit(){
     gameWon = 0;
 
-    gameInitialize();
+    gameInitialize(); // method in linkedList.
 }
 
 char* lastMessage;
 char* lastCommand;
 
+/*
+ * Draws the current state of the game. If no cards are loaded,
+ * it doesn't draw card data, but simply makes a "clear" game board.
+ * First call of draw, it will go to printHelp() (instead of drawing)
+ * to show available commands. If HP command is later used, it will
+ * call printHelp() again, otherwise subsequent calls to draw() will
+ * display the game state at the time of calling.
+ */
 
 void draw(){
 
@@ -29,7 +36,7 @@ void draw(){
     }
 
     if (helpText) {
-        printHelp();
+        printHelp(); // method in inputHelper.
         helpText = 0;
         return;
     }
@@ -41,11 +48,13 @@ void draw(){
         if (grid[i].size > rowMax){ rowMax = grid[i].size; }
     }
     
+    // Draw the required number of rows to display all the cards and foundations.
+
     for (int i = 0; i < rowMax; i++)
     {
         for (int j = 0; j < 7 ; j++)
         {
-            Card* card = getCLCard(&grid[j], i);
+            Card* card = getCLCard(&grid[j], i); // Determine whether there is a card at the i'th position in the list.
             if(card != NULL){
                 if(card->hidden){
                     printf("[]");
@@ -76,6 +85,10 @@ void draw(){
     printf("\nINPUT > ");
 }
 
+/*
+ * Deals out cards in order to make the card pattern, flipping cards as needed.
+ */
+
 void createGrid(){
 
     moveCard(&deck, &grid[0]);
@@ -97,6 +110,9 @@ void createGrid(){
     }
 }
 
+/*
+ * Update lastMessage or lastCommand.
+ */
 void messageHandler(char* outputMessage){
     lastMessage = strdup(outputMessage);
 }
@@ -105,9 +121,16 @@ void lastCommandHandler(char* outputMessage){
     lastCommand = strdup(outputMessage);
 }
 
-int moveCardCommand(char* cardName, char* columnName){
+/*
+ * moveCardCommand asserts the parameters given in the command. If they follow the format,
+ * the method proceeds to check if the move is legal or not.
+ * The method returns 1 if and only if a move is performed, all other cases return 0.
+ */
 
-    int cardNum = assertParameter(cardName,'c');
+int moveCardCommand(char* cardName, char* columnName){
+    // STEP 1: Validate parameters.
+
+    int cardNum = assertParameter(cardName,'c'); // method in inputHelper.
     int columnNum = assertParameter(columnName,'g');
 
     if (cardNum == -1 || columnNum == -1) {
@@ -127,7 +150,7 @@ int moveCardCommand(char* cardName, char* columnName){
     // STEP 3: Determine if move is legal. Card has to have hidden == 0 and column
     // tail has to be one rank higher and off-suit.
     // STEP 4: If move is illegal, update displayMessage. If move is legal,
-    // perform move and update lastCommand.
+    // perform move and update lastMessage and lastCommand (return value).
 
     if (targetCard == NULL) {
         messageHandler("Trying to move a card that is on a foundation.");
@@ -158,10 +181,15 @@ int moveCardCommand(char* cardName, char* columnName){
 
 }
 
+/*
+ * Attempts to move a card from a column to a foundation. Performs validation on
+ * column name and then checks if column->tail is eligible to move. Returns 0 on fail.
+ */
+
 int moveFoundation(char* columnName) {
     // STEP 1: Assert integrity of columnName and use second char of column 
     // name to reference grid index.
-    int columnNum = assertParameter(columnName,'g');
+    int columnNum = assertParameter(columnName,'g'); // method in inputHelper.
     
     // STEP 2: Check if tail element can be moved to it's designated foundation.
     Card* targetCard = grid[columnNum].tail;
@@ -195,16 +223,21 @@ int moveFoundation(char* columnName) {
     return 1;
 }
 
+/*
+ * Show command created to satisfy requirement specifications. Deals cards as wished.
+ */
+
 void showCommand(){
 
     gameInit();
 
     char** cards;
 
-    cards = fileReader("00");
+    cards = fileReader("00"); // Load the unsorted deck.
 
-    Card* castCards = malloc(sizeof(Card) * 52);
+    Card* castCards = malloc(sizeof(Card) * 52); // allocate memory
 
+    // Push each card onto the deck.
     for (size_t i = 0; i < 52; i++)
     {
         castCards[i] = createCard(*(cards + 51 - i));
@@ -213,16 +246,24 @@ void showCommand(){
 
     free(cards);
 
+    // Distribute cards in the grid.
     for (int j = 0; j < 52; j++)
     {
         moveCard(&deck, &grid[j % 7]);
     }
 }
 
+/*
+ * Load the specified card deck, if the gameID is between 00 and 99.
+ * If the gameID isn't correctly formatted, default to load deck 00.
+ * Allocate memory for the cards, push it onto the deck and createGrid().
+ */
+
 void createGame(char* gameID) {
+    
+    gameInit(); // Reset CardLists.
 
-    gameInit();
-
+    // Cast gameID to a number.
     int a = (int) (*(gameID)) - 48;
     int b = (int) (*(gameID + 1)) - 48;
     a = a*10 + b;
@@ -273,11 +314,11 @@ void inputHandler(){
 
     char* convert = convertToUpperCase(input); // Convert any lower case characters to upper case characters.
 
-    convert[strcspn(convert,"\n")] = 0;
+    convert[strcspn(convert,"\n")] = 0; // Remove the newline character from the input.
 
     char* commandGiven = strdup(convert); // Duplicate convert so that it can be output later.
     
-    command = str_split(convert, ' ');
+    command = str_split(convert, ' '); // method in inputHelper.
 
     free(convert);
     
@@ -353,8 +394,13 @@ void inputHandler(){
 
 int main() 
 {    
+    // Initialize structures.
     gameInit();
+
+    // Set first command, as it isn't set if invalid commands are given.
     lastCommandHandler("No valid command given.");
+    
+    // Game loop
     while (run){
         draw();
 

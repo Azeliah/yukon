@@ -3,6 +3,12 @@
 #include <string.h>
 #include <assert.h>
 
+/*
+ * Split a string into smaller strings using a delimiter.
+ * E.g. str_split("A,b,QQ",',') returns ("A","b","QQ").
+ */
+
+
 char** str_split(char* str, const char delimiter){
 
     char** result = 0;
@@ -48,7 +54,6 @@ char** str_split(char* str, const char delimiter){
 
     while (token)
     {
-        // Remove assertions.
         assert(ident<count);
         *(result+ident++) = strdup(token);
 
@@ -72,6 +77,11 @@ int isLetter(char input){
     }
 }
 
+/*
+ * Convert a string to an identical string, except lower case characters
+ * are now upper case.
+ */
+
 char* convertToUpperCase(char* input) {
     size_t inputLength = strlen(input);
     char* convert = malloc(sizeof(char) * inputLength);
@@ -87,6 +97,12 @@ char* convertToUpperCase(char* input) {
     }
     return convert;
 }
+
+/*
+ * Determine whether two chars represent a card if used with assertType == 'c'.
+ * Likewise if two chars represent a column using assertType == 'g'.
+ * Returns a value representing the card or column if success, else -1.
+ */
 
 int assertParameter(char* input, char assertType){
     // input is ALWAYS 2 upper case characters.
@@ -164,8 +180,12 @@ int assertParameter(char* input, char assertType){
 
 }
 
+/*
+ * HELP MENU.
+ */
+
 void printHelp() {
-    printf("WELCOME TO YUKON!\n\n");
+    printf("WELCOME TO YUKON HELP DESK!\n\n");
     printf("Command name\t| Syntax\t\t\t| Description\n");
     printf("-----------------------------------------------------------------------------------------------------\n");
     printf("FD\t\t| FD [column name]\t\t| Moves the last card in the column to a foundation.\n");
