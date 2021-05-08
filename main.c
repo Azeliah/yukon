@@ -11,14 +11,14 @@ int clearEnabled = 1;
 int gameWon;
 int helpText = 1;
 
+char* lastMessage;
+char* lastCommand;
+
 void gameInit(){
     gameWon = 0;
 
     gameInitialize(); // method in linkedList.
 }
-
-char* lastMessage;
-char* lastCommand;
 
 /*
  * Draws the current state of the game. If no cards are loaded,
@@ -191,15 +191,22 @@ int moveFoundation(char* columnName) {
     // name to reference grid index.
     int columnNum = assertParameter(columnName,'g'); // method in inputHelper.
     
+    if (columnNum == -1){
+        messageHandler("Not a correct column name.");
+        return 0;
+    }
+
     // STEP 2: Check if tail element can be moved to it's designated foundation.
     Card* targetCard = grid[columnNum].tail;
     
     if (targetCard == NULL) {
+        messageHandler("Specified column is empty.");
         return 0;
     }
 
     int foundationSize = foundations[targetCard->numSuit].size;
     if (targetCard->numRank != foundationSize + 1) {
+        messageHandler("Card is not eligible to move to foundation.");
         return 0;
     }
 
@@ -349,8 +356,6 @@ void inputHandler(){
                 success = moveFoundation(*(command + 1));
                 if (success) {
                     messageHandler("Target card moved to foundation.");
-                } else {
-                    messageHandler("Target card is not able to be moved to foundation.");
                 }
             } else if (!(strncmp(*(command), "HP", 2))){
                 helpText = 1;
