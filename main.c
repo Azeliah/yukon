@@ -30,11 +30,10 @@ void gameInit(){
  */
 
 void draw(){
-
+    printf("\n");
     if(clearEnabled){
-        system("clear");        
+        system("clear");         
     }
-
     if (helpText) {
         printHelp(); // method in inputHelper.
         helpText = 0;
@@ -270,18 +269,24 @@ void createGame(char* gameID) {
     
     gameInit(); // Reset CardLists.
 
-    // Cast gameID to a number.
-    int a = (int) (*(gameID)) - 48;
-    int b = (int) (*(gameID + 1)) - 48;
-    a = a*10 + b;
-
-    if (a > -1 && a < 100) {
-        a = 1;
-    } else {
-        a = 0;
-    }
-    
     char** cards;
+
+    int a = 0;
+    
+    if(strlen(gameID) == 2) {
+    
+        // Cast gameID to a number.
+        a = (int) (*(gameID)) - 48;
+        int b = (int) (*(gameID + 1)) - 48;
+        a = a*10 + b;
+
+       if (a > -1 && a < 100) {
+          a = 1;
+       } else {
+            a = 0;
+        }
+    
+    }
 
     if (a) {
         messageHandler("Loaded requested card file.");
@@ -290,7 +295,7 @@ void createGame(char* gameID) {
         messageHandler("Invalid file ID, loaded game 00 instead.");
         cards = fileReader("00");
     }
-
+    
     Card* castCards = malloc(sizeof(Card) * 52);
 
     for (size_t i = 0; i < 52; i++)
@@ -333,12 +338,7 @@ void inputHandler(){
     {
         if(strlen(*(command)) == 2){
             if (!(strncmp(*(command), "LD", 2))){
-                if (strlen(*(command + 1)) == 2) {
-                    createGame(*(command + 1));
-                } else {
-                    messageHandler("Invalid file ID, loaded game 00 instead.");
-                    createGame("00");
-                }
+                createGame(*(command + 1));
                 
             } else if (!(strncmp(*(command), "MV", 2))) {
                 printf("Asked to move card %s to column %s.\n", *(command + 1), *(command + 2));
@@ -404,7 +404,7 @@ int main()
 
     // Set first command, as it isn't set if invalid commands are given.
     lastCommandHandler("No valid command given.");
-    
+
     // Game loop
     while (run){
         draw();
