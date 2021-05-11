@@ -144,6 +144,11 @@ int moveCardCommand(char* cardName, char* columnName){
     
     Card* targetCard = searchCard(numRank, numSuit);
 
+    if (targetCard->listID = grid[columnNum].listID){
+        messageHandler("Trying to move a card to its current column.");
+        return 0;
+    }
+
     int cardsToMove;
 
     // STEP 3: Determine if move is legal. Card has to have hidden == 0 and column
