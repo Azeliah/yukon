@@ -144,7 +144,7 @@ int moveCardCommand(char* cardName, char* columnName){
     
     Card* targetCard = searchCard(numRank, numSuit);
 
-    if (targetCard->listID = grid[columnNum].listID){
+    if (targetCard->listID == grid[columnNum].listID){
         messageHandler("Trying to move a card to its current column.");
         return 0;
     }
